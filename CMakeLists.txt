@@ -3,6 +3,8 @@ project(tensorrt_cpp_api)
 
 # Use ccache to speed up rebuilds
 include(cmake/ccache.cmake)
+set(UTILITY_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/utility)
+include(utility/cmake/utility.cmake)
 
 # Set C++ version and optimization level
 set(CMAKE_CXX_STANDARD 17)
@@ -23,11 +25,20 @@ find_package(TensorRT REQUIRED)
 find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 
-add_library(tensorrt_cpp_api SHARED
-        src/engine.cpp)
+file(GLOB SRC_LIST
+        src/engine.cpp
+)
 
-target_include_directories(tensorrt_cpp_api PUBLIC ${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${TensorRT_INCLUDE_DIRS})
-target_link_libraries(tensorrt_cpp_api PUBLIC ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TensorRT_LIBRARIES})
+foreach (sourcefile ${SRC_LIST})
+    redefine_file_base(${sourcefile})
+endforeach ()
+
+add_library(${PROJECT_NAME} SHARED ${SRC_LIST})
+
+#target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog) #spdlog
+target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${TensorRT_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${TensorRT_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC -lstdc++fs)
 
 add_executable(run_inference_benchmark src/main.cpp)
 target_link_libraries(run_inference_benchmark tensorrt_cpp_api)
