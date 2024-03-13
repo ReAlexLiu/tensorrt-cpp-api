@@ -700,13 +700,49 @@ void Engine::getDeviceNames(std::vector<std::string>& deviceNames)
 
 cv::cuda::GpuMat Engine::resizeKeepAspectRatioPadRightBottom(const cv::cuda::GpuMat& input, size_t height, size_t width, const cv::Scalar& bgcolor)
 {
-    float            r       = std::min(width / (input.cols * 1.0), height / (input.rows * 1.0));
-    int              unpad_w = r * input.cols;
-    int              unpad_h = r * input.rows;
+    int   unpad_w, unpad_h;
+    float r_w = width / (input.cols * 1.0);
+    float r_h = height / (input.rows * 1.0);
+    if (r_h > r_w)
+    {
+        unpad_w = width;
+        unpad_h = r_w * input.rows;
+    }
+    else
+    {
+        unpad_w = r_h * input.cols;
+        unpad_h = height;
+    }
     cv::cuda::GpuMat re(unpad_h, unpad_w, CV_8UC3);
     cv::cuda::resize(input, re, re.size());
     cv::cuda::GpuMat out(height, width, CV_8UC3, bgcolor);
     re.copyTo(out(cv::Rect(0, 0, re.cols, re.rows)));
+    return out;
+}
+
+cv::cuda::GpuMat Engine::resizeKeepAspectRatioPadMiddle(const cv::cuda::GpuMat& input, size_t height, size_t width, const cv::Scalar& bgcolor)
+{
+    int   unpad_w, unpad_h, unpad_x, unpad_y;
+    float r_w = width / (input.cols * 1.0);
+    float r_h = height / (input.rows * 1.0);
+    if (r_h > r_w)
+    {
+        unpad_w = width;
+        unpad_h = r_w * input.rows;
+        unpad_x = 0;
+        unpad_y = (height - unpad_h) / 2;
+    }
+    else
+    {
+        unpad_w = r_h * input.cols;
+        unpad_h = height;
+        unpad_x = (width - unpad_w) / 2;
+        unpad_y = 0;
+    }
+    cv::cuda::GpuMat re(unpad_h, unpad_w, CV_8UC3);
+    cv::cuda::resize(input, re, re.size());
+    cv::cuda::GpuMat out(height, width, CV_8UC3, bgcolor);
+    re.copyTo(out(cv::Rect(unpad_x, unpad_y, re.cols, re.rows)));
     return out;
 }
 

@@ -177,6 +177,7 @@ public:
     // While letterbox padding normally adds padding to top & bottom, or left & right sides, this implementation only adds padding to the right or bottom side
     // This is done so that it's easier to convert detected coordinates (ex. YOLO model) back to the original reference frame.
     static cv::cuda::GpuMat                           resizeKeepAspectRatioPadRightBottom(const cv::cuda::GpuMat& input, size_t height, size_t width, const cv::Scalar& bgcolor = cv::Scalar(0, 0, 0));
+    static cv::cuda::GpuMat                           resizeKeepAspectRatioPadMiddle(const cv::cuda::GpuMat& input, size_t height, size_t width, const cv::Scalar& bgcolor = cv::Scalar(0, 0, 0));
 
     [[nodiscard]] const std::vector<nvinfer1::Dims3>& getInputDims() const { return m_inputDims; };
     [[nodiscard]] const std::vector<nvinfer1::Dims>&  getOutputDims() const { return m_outputDims; };
