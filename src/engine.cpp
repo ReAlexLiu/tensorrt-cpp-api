@@ -645,8 +645,10 @@ cv::cuda::GpuMat Engine::blobFromGpuMats(const std::vector<cv::cuda::GpuMat>& ba
 
 std::string Engine::serializeEngineOptions(const Options& options, const std::string& onnxModelPath)
 {
-    const auto               filenamePos = onnxModelPath.find_last_of('/') + 1;
-    std::string              engineName  = onnxModelPath.substr(filenamePos, onnxModelPath.find_last_of('.') - filenamePos) + ".engine";
+    //const auto               filenamePos = onnxModelPath.find_last_of('/') + 1;
+    //std::string              engineName  = onnxModelPath.substr(filenamePos, onnxModelPath.find_last_of('.') - filenamePos) + ".engine";
+
+    std::string              engineName = onnxModelPath.substr(0, onnxModelPath.find_last_of('.')) + ".engine";
 
     // Add the GPU device name to the file to ensure that the model is only used on devices with the exact same GPU
     std::vector<std::string> deviceNames;
@@ -720,7 +722,7 @@ cv::cuda::GpuMat Engine::resizeKeepAspectRatioPadRightBottom(const cv::cuda::Gpu
     return out;
 }
 
-cv::cuda::GpuMat Engine::resizeKeepAspectRatioPadMiddle(const cv::cuda::GpuMat& input, size_t height, size_t width, const cv::Scalar& bgcolor)
+cv::cuda::GpuMat Engine::resizeKeepAspectRatioPadCenter(const cv::cuda::GpuMat& input, size_t height, size_t width, const cv::Scalar& bgcolor)
 {
     int   unpad_w, unpad_h, unpad_x, unpad_y;
     float r_w = width / (input.cols * 1.0);
@@ -744,6 +746,65 @@ cv::cuda::GpuMat Engine::resizeKeepAspectRatioPadMiddle(const cv::cuda::GpuMat& 
     cv::cuda::GpuMat out(height, width, CV_8UC3, bgcolor);
     re.copyTo(out(cv::Rect(unpad_x, unpad_y, re.cols, re.rows)));
     return out;
+}
+
+//左上顶点补边方式坐标还原
+void Engine::resetLocationRightBottom(float resizeRatio, unsigned int width, unsigned int height, cv::Rect_<float> &bbox)
+{
+    bbox.x      = bbox.x * resizeRatio;
+    bbox.y      = bbox.y * resizeRatio;
+    bbox.width  = bbox.width * resizeRatio;
+    bbox.height = bbox.height * resizeRatio;
+
+
+    bbox.x      = (bbox.x < width) ? bbox.x : width;
+    bbox.y      = (bbox.y < height) ? bbox.y : height;
+    bbox.width  = (bbox.width < width) ? bbox.width : width;
+    bbox.height = (bbox.height < height) ? bbox.height : height;
+
+    bbox.x      = (bbox.x >= 0) ? bbox.x : 0;
+    bbox.y      = (bbox.y >= 0) ? bbox.y : 0;
+    bbox.width  = (bbox.width >= 0) ? bbox.width : 0;
+    bbox.height = (bbox.height >= 0) ? bbox.height : 0;
+}
+
+//中心补边方式坐标还原
+void Engine::resetLocationCenter(float resizeRatio, unsigned int width, unsigned int height, unsigned int input_w, unsigned int input_h, cv::Rect_<float> &bbox)
+{
+    int   w, h, x, y;
+    float r_w = input_w / (width * 1.0);
+    float r_h = input_h / (height * 1.0);
+    if (r_h > r_w)
+    {
+        w = input_w;
+        h = r_w * height;
+        x = 0;
+        y = (input_h - h) / 2;
+        bbox.y -= y;
+    }
+    else
+    {
+        w = r_h * width;
+        h = input_h;
+        x = (input_w - w) / 2;
+        y = 0;
+        bbox.x -= x;
+    }
+
+    bbox.x      = bbox.x * resizeRatio;
+    bbox.y      = bbox.y * resizeRatio;
+    bbox.width  = bbox.width * resizeRatio;
+    bbox.height = bbox.height * resizeRatio;
+
+    bbox.x      = (bbox.x < width) ? bbox.x : width;
+    bbox.y      = (bbox.y < height) ? bbox.y : height;
+    bbox.width  = (bbox.width < width) ? bbox.width : width;
+    bbox.height = (bbox.height < height) ? bbox.height : height;
+
+    bbox.x      = (bbox.x >= 0) ? bbox.x : 0;
+    bbox.y      = (bbox.y >= 0) ? bbox.y : 0;
+    bbox.width  = (bbox.width >= 0) ? bbox.width : 0;
+    bbox.height = (bbox.height >= 0) ? bbox.height : 0;
 }
 
 void Engine::transformOutput(std::vector<std::vector<std::vector<float>>>& input, std::vector<std::vector<float>>& output)
