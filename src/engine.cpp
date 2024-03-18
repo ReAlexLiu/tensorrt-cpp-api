@@ -771,24 +771,18 @@ void Engine::resetLocationRightBottom(float resizeRatio, unsigned int width, uns
 //中心补边方式坐标还原
 void Engine::resetLocationCenter(float resizeRatio, unsigned int width, unsigned int height, unsigned int input_w, unsigned int input_h, cv::Rect_<float> &bbox)
 {
-    int   w, h, x, y;
+    int   xy;
     float r_w = input_w / (width * 1.0);
     float r_h = input_h / (height * 1.0);
     if (r_h > r_w)
     {
-        w = input_w;
-        h = r_w * height;
-        x = 0;
-        y = (input_h - h) / 2;
-        bbox.y -= y;
+        xy = (input_h - r_w * height) / 2;
+        bbox.y -= xy;
     }
     else
     {
-        w = r_h * width;
-        h = input_h;
-        x = (input_w - w) / 2;
-        y = 0;
-        bbox.x -= x;
+        xy = (input_w - r_h * width) / 2;
+        bbox.x -= xy;
     }
 
     bbox.x      = bbox.x * resizeRatio;
