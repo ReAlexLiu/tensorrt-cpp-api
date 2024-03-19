@@ -184,9 +184,9 @@ public:
     static cv::cuda::GpuMat                           resizeKeepAspectRatioPadRightBottom(const cv::cuda::GpuMat& input, size_t height, size_t width, const cv::Scalar& bgcolor = cv::Scalar(0, 0, 0));
     static cv::cuda::GpuMat                           resizeKeepAspectRatioPadCenter(const cv::cuda::GpuMat& input, size_t height, size_t width, const cv::Scalar& bgcolor = cv::Scalar(0, 0, 0));
 
-    static void resetLocationRightBottom(float resizeRatio, unsigned int width, unsigned int height, cv::Rect_<float> &bbox);
+    static void resetLocationRightBottom(float resizeRatio, int width, int height, cv::Rect_<float> &bbox);
     //中心补边方式坐标还原
-    static void resetLocationCenter(float resizeRatio, unsigned int width, unsigned int height, unsigned int input_w, unsigned int input_h, cv::Rect_<float> &bbox);
+    static void resetLocationCenter(float resizeRatio, int width, int height, int input_w, int input_h, cv::Rect_<float> &bbox);
 
     [[nodiscard]] const std::vector<nvinfer1::Dims3>& getInputDims() const { return m_inputDims; };
     [[nodiscard]] const std::vector<nvinfer1::Dims>&  getOutputDims() const { return m_outputDims; };

@@ -28,6 +28,7 @@
 #include <iterator>
 #include <opencv2/cudaimgproc.hpp>
 #include <random>
+#include <algorithm>
 
 using namespace nvinfer1;
 using namespace Util;
@@ -749,27 +750,21 @@ cv::cuda::GpuMat Engine::resizeKeepAspectRatioPadCenter(const cv::cuda::GpuMat& 
 }
 
 //左上顶点补边方式坐标还原
-void Engine::resetLocationRightBottom(float resizeRatio, unsigned int width, unsigned int height, cv::Rect_<float> &bbox)
+void Engine::resetLocationRightBottom(float resizeRatio, int width, int height, cv::Rect_<float> &bbox)
 {
-    bbox.x      = bbox.x * resizeRatio;
-    bbox.y      = bbox.y * resizeRatio;
-    bbox.width  = bbox.width * resizeRatio;
-    bbox.height = bbox.height * resizeRatio;
+    float x0    = std::clamp((bbox.x - 0.5f * bbox.width) * resizeRatio, 0.f, width * 1.0f);
+    float y0    = std::clamp((bbox.y - 0.5f * bbox.height) * resizeRatio, 0.f, height * 1.0f);
+    float x1    = std::clamp((bbox.x + 0.5f * bbox.width) * resizeRatio, 0.f, width * 1.0f);
+    float y1    = std::clamp((bbox.y + 0.5f * bbox.height) * resizeRatio, 0.f, height * 1.0f);
 
-
-    bbox.x      = (bbox.x < width) ? bbox.x : width;
-    bbox.y      = (bbox.y < height) ? bbox.y : height;
-    bbox.width  = (bbox.width < width) ? bbox.width : width;
-    bbox.height = (bbox.height < height) ? bbox.height : height;
-
-    bbox.x      = (bbox.x >= 0) ? bbox.x : 0;
-    bbox.y      = (bbox.y >= 0) ? bbox.y : 0;
-    bbox.width  = (bbox.width >= 0) ? bbox.width : 0;
-    bbox.height = (bbox.height >= 0) ? bbox.height : 0;
+    bbox.x      = x0;
+    bbox.y      = y0;
+    bbox.width  = x1 - x0;
+    bbox.height = y1 - y0;
 }
 
 //中心补边方式坐标还原
-void Engine::resetLocationCenter(float resizeRatio, unsigned int width, unsigned int height, unsigned int input_w, unsigned int input_h, cv::Rect_<float> &bbox)
+void Engine::resetLocationCenter(float resizeRatio, int width, int height, int input_w, int input_h, cv::Rect_<float> &bbox)
 {
     int   xy;
     float r_w = input_w / (width * 1.0);
@@ -785,20 +780,15 @@ void Engine::resetLocationCenter(float resizeRatio, unsigned int width, unsigned
         bbox.x -= xy;
     }
 
-    bbox.x      = bbox.x * resizeRatio;
-    bbox.y      = bbox.y * resizeRatio;
-    bbox.width  = bbox.width * resizeRatio;
-    bbox.height = bbox.height * resizeRatio;
+    float x0    = std::clamp((bbox.x - 0.5f * bbox.width) * resizeRatio, 0.f, width * 1.0f);
+    float y0    = std::clamp((bbox.y - 0.5f * bbox.height) * resizeRatio, 0.f, height * 1.0f);
+    float x1    = std::clamp((bbox.x + 0.5f * bbox.width) * resizeRatio, 0.f, width * 1.0f);
+    float y1    = std::clamp((bbox.y + 0.5f * bbox.height) * resizeRatio, 0.f, height * 1.0f);
 
-    bbox.x      = (bbox.x < width) ? bbox.x : width;
-    bbox.y      = (bbox.y < height) ? bbox.y : height;
-    bbox.width  = (bbox.width < width) ? bbox.width : width;
-    bbox.height = (bbox.height < height) ? bbox.height : height;
-
-    bbox.x      = (bbox.x >= 0) ? bbox.x : 0;
-    bbox.y      = (bbox.y >= 0) ? bbox.y : 0;
-    bbox.width  = (bbox.width >= 0) ? bbox.width : 0;
-    bbox.height = (bbox.height >= 0) ? bbox.height : 0;
+    bbox.x      = x0;
+    bbox.y      = y0;
+    bbox.width  = x1 - x0;
+    bbox.height = y1 - y0;
 }
 
 void Engine::transformOutput(std::vector<std::vector<std::vector<float>>>& input, std::vector<std::vector<float>>& output)
