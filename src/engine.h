@@ -28,10 +28,11 @@
 
 #include "xlogger.hpp"
 
-
+#if !(NV_TENSORRT_MAJOR * 1000 + NV_TENSORRT_MINOR * 100 + NV_TENSORRT_PATCH > 8201)
 #define BBOX_SIZE1(INPUT) (INPUT / 32)
 #define BBOX_SIZE2(INPUT) (INPUT / 16)
 #define BBOX_SIZE3(INPUT) (INPUT / 8)
+#endif
 
 // Utility methods
 namespace Util
