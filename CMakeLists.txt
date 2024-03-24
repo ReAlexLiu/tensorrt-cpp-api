@@ -6,9 +6,14 @@ include(cmake/ccache.cmake)
 set(UTILITY_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/utility)
 include(utility/cmake/utility.cmake)
 
-# Set C++ version and optimization level
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Ofast -DNDEBUG -Wno-deprecated-declarations")
+# Set C++ version and optimization level
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+    message(STATUS "Debug build enabled.")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Ofast -DNDEBUG -Wno-deprecated-declarations")
+endif()
 
 # For finding FindTensorRT.cmake
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})

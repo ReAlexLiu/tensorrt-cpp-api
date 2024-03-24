@@ -154,6 +154,7 @@ bool Engine::build(std::string onnxModelPath, const std::array<float, 3>& subVal
     }
 
     // Parse the buffer we read into memory.
+    // Parse the buffer we read into memory.
     auto parsed = parser->parse(buffer.data(), buffer.size());
     if (!parsed)
     {
@@ -396,20 +397,49 @@ bool Engine::loadNetwork()
     // Allocate GPU memory for input and output buffers
     cudaStream_t stream;
     checkCudaErrorCode(cudaStreamCreate(&stream));
-#if !(NV_TENSORRT_MAJOR * 1000 + NV_TENSORRT_MINOR * 100 + NV_TENSORRT_PATCH > 8201)
-    // Define
-    // Allocate input
-    size_t input_mem_size = m_options.maxBatchSize *
-                            m_options.channels * m_options.width * m_options.height * sizeof(float);
-    // cudaMemcpyAsync
-    checkCudaErrorCode(cudaMallocManaged(&m_buffers[0], input_mem_size));
-    checkCudaErrorCode(cudaStreamAttachMemAsync(stream, m_buffers[0], 0, cudaMemAttachGlobal));
-    m_inputDims.emplace_back(m_options.channels, m_options.width, m_options.height);
-#endif
+
     // Allocate GPU memory for input and output buffers
     m_outputLengthsFloat.clear();
+#if !(NV_TENSORRT_MAJOR * 1000 + NV_TENSORRT_MINOR * 100 + NV_TENSORRT_PATCH > 8201)
+    for (int i = 0; i < m_engine->getNbBindings(); ++i)
+    {
+        const auto tensorType  = m_engine->bindingIsInput(i);
+        const auto tensorShape = m_engine->getBindingDimensions(i);
+        if (tensorType)
+        {
+            // Store the input dims for later use
+            m_inputDims.emplace_back(tensorShape.d[1], tensorShape.d[2], tensorShape.d[3]);
+            m_inputBatchSize = tensorShape.d[0];
 
-#if (NV_TENSORRT_MAJOR * 1000 + NV_TENSORRT_MINOR * 100 + NV_TENSORRT_PATCH > 8201)
+            // Define
+            // Allocate input
+            size_t input_mem_size = tensorShape.d[0] *
+                                    tensorShape.d[1] * tensorShape.d[2] * tensorShape.d[3] * sizeof(float);
+            // cudaMemcpyAsync
+            checkCudaErrorCode(cudaMallocManaged(&m_buffers[i], input_mem_size));
+            checkCudaErrorCode(cudaStreamAttachMemAsync(stream, m_buffers[i], 0, cudaMemAttachGlobal));
+        }
+        else
+        {
+            // The binding is an output
+            uint32_t outputLenFloat = 1;
+            m_outputDims.push_back(tensorShape);
+
+            for (int j = 1; j < tensorShape.nbDims; ++j)
+            {
+                // We ignore j = 0 because that is the batch size, and we will take that into account when sizing the buffer
+                outputLenFloat *= tensorShape.d[j];
+            }
+
+            m_outputLengthsFloat.push_back(outputLenFloat);
+
+            // Now size the output buffer appropriately, taking into account the max possible batch size (although we could actually end up using less memory)
+            size_t output_mem_size = tensorShape.d[0] * outputLenFloat * sizeof(float);
+            checkCudaErrorCode(cudaMallocManaged(&m_buffers[i], output_mem_size));
+            checkCudaErrorCode(cudaStreamAttachMemAsync(stream, m_buffers[i], 0, cudaMemAttachGlobal));
+        }
+    }
+#else
     for (int i = 0; i < m_engine->getNbIOTensors(); ++i)
     {
         const auto tensorName = m_engine->getIOTensorName(i);
@@ -448,20 +478,6 @@ bool Engine::loadNetwork()
             throw std::runtime_error("IO Tensor is neither an input or output!");
         }
     }
-#else
-    nvinfer1::Dims3 out_tensor_shape = { m_options.maxBatchSize, m_options.totals, m_options.targets };
-    m_outputDims.push_back(out_tensor_shape);
-    uint32_t outputLenFloat = 1;
-    for (int j = 1; j < out_tensor_shape.nbDims; ++j)
-    {
-        // We ignore j = 0 because that is the batch size, and we will take that into account when sizing the buffer
-        outputLenFloat *= out_tensor_shape.d[j];
-    }
-    m_outputLengthsFloat.push_back(outputLenFloat);
-    // Now size the output buffer appropriately, taking into account the max possible batch size (although we could actually end up using less memory)
-    size_t output_mem_size = m_options.maxBatchSize * outputLenFloat * sizeof(float);
-    checkCudaErrorCode(cudaMallocManaged(&m_buffers[1], output_mem_size));
-    checkCudaErrorCode(cudaStreamAttachMemAsync(stream, m_buffers[1], 0, cudaMemAttachGlobal));
 #endif
 
     // Synchronize and destroy the cuda stream

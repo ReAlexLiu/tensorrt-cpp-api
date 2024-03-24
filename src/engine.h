@@ -28,12 +28,6 @@
 
 #include "xlogger.hpp"
 
-#if !(NV_TENSORRT_MAJOR * 1000 + NV_TENSORRT_MINOR * 100 + NV_TENSORRT_PATCH > 8201)
-#define BBOX_SIZE1(INPUT) (INPUT / 32)
-#define BBOX_SIZE2(INPUT) (INPUT / 16)
-#define BBOX_SIZE3(INPUT) (INPUT / 8)
-#endif
-
 // Utility methods
 namespace Util
 {
@@ -113,13 +107,6 @@ struct Options
     int32_t     maxBatchSize         = 16;
     // GPU device index
     int         deviceIndex          = 0;
-#if !(NV_TENSORRT_MAJOR * 1000 + NV_TENSORRT_MINOR * 100 + NV_TENSORRT_PATCH > 8201)
-    int channels = 3;
-    int width    = 1280;
-    int height   = 1280;
-    int totals   = 100800;
-    int targets  = 10;
-#endif
 };
 
 // Class used for int8 calibration
