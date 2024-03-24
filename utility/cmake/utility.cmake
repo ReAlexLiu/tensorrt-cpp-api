@@ -24,54 +24,68 @@ function(redefine_file_base targetname)
     set_property(SOURCE "${targetname}" PROPERTY COMPILE_DEFINITIONS ${defs})
 endfunction(redefine_file_base)
 
-# 添加版本号，用于部署后验证程序是否升级成功
-function(generate_version major minor branch_name)
-    string(TIMESTAMP COMPILE_TIME "%Y-%m-%dT%H:%M:%S")
-    set(VERSION_MAJOR ${major})    # 一级版本号
-    set(VERSION_MINOR ${minor})    # 二级版本号
-
-    set(TARGET_NAME ${branch_name}) 
+find_package(Git QUIET)     # 查找Git，QUIET静默方式不报错
+if (GIT_FOUND)
+    execute_process(# 执行一个子进程
+            COMMAND ${GIT_EXECUTABLE} log -1 --format=%H # 命令
+            OUTPUT_VARIABLE GIT_VERSION        # 输出字符串存入变量
+            OUTPUT_STRIP_TRAILING_WHITESPACE    # 删除字符串尾的换行符
+            ERROR_QUIET                         # 对执行错误静默
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} # 执行路径
+    )
+    add_definitions(-DGIT_VERSION=${GIT_VERSION})
 
     execute_process(
-        COMMAND git log -1 --format=%H
-        OUTPUT_VARIABLE GIT_VERSION
+            COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:%h
+            OUTPUT_VARIABLE GIT_SHORT_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
-
-    execute_process(
-        COMMAND git log -1 --pretty=format:%h
-        OUTPUT_VARIABLE GIT_SHORT_VERSION
-    )
-    
     if (GIT_SHORT_VERSION STREQUAL "")
         string(TIMESTAMP GIT_SHORT_VERSION "%H%M%S")
-    endif()
+    endif ()
+    add_definitions(-DGIT_SHORT_VERSION=${GIT_SHORT_VERSION})
 
     execute_process(
-        COMMAND git log -1 --pretty=format:%an
-        OUTPUT_VARIABLE GIT_AUTHOR
+            COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:%an
+            OUTPUT_VARIABLE GIT_AUTHOR
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
-
     if (GIT_AUTHOR STREQUAL "")
         set(GIT_AUTHOR "lucky.liu")
-    endif()
+    endif ()
+    add_definitions(-DGIT_AUTHOR=${GIT_AUTHOR})
 
     execute_process(
-        COMMAND git rev-list --all --count
-        OUTPUT_VARIABLE VERSION_LEVEL3
+            COMMAND ${GIT_EXECUTABLE} rev-list --all --count
+            OUTPUT_VARIABLE REVISION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
-    
-    if (VERSION_LEVEL3 STREQUAL "")
-        string(TIMESTAMP VERSION_LEVEL3 "%Y%m%d")
-    endif()
+    if (REVISION STREQUAL "")
+        string(TIMESTAMP REVISION "%Y%m%d")
+    endif ()
+    math(EXPR REVISION "${REVISION}-${REVISION_PREFIX}")
+    add_definitions(-DREVISION=${REVISION})
 
-    configure_file(
-        "config.h.in"
-        "../config.h"
-    )
-endfunction(generate_version)
+    string(TIMESTAMP COMPILE_TIME "%Y-%m-%dT%H:%M:%S")
+    add_definitions(-DCOMPILE_TIME=${COMPILE_TIME})
+    #set(VERSION_MAJOR ${major})    # 一级版本号
+    #set(VERSION_MINOR ${minor})    # 二级版本号
+
+
+    #configure_file(
+    #        "config.h.in"
+    #        "../config.h"
+    #)
+endif()
 
 if (NOT DEFINED UTILITY_ROOT)
-    set( UTILITY_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty/utility )
+set( UTILITY_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty/utility )
 endif()
 message(STATUS "UTILITY_ROOT: ${UTILITY_ROOT}")
 

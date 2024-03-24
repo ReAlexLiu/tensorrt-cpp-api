@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.18)
 project(tensorrt_cpp_api)
 
+set(VERSION_MAJOR 1)
+add_definitions(-DVERSION_MAJOR=${VERSION_MAJOR})    # 一级版本号
+set(VERSION_MINOR 0)
+add_definitions(-DVERSION_MINOR=${VERSION_MINOR})    # 二级版本号
+set(VERSION_BUILD 3)
+add_definitions(-DVERSION_BUILD=${VERSION_BUILD})    # 三级版本号
+set(REVISION_PREFIX 130)
+
 # Use ccache to speed up rebuilds
 include(cmake/ccache.cmake)
 set(UTILITY_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/utility)
@@ -38,7 +46,9 @@ foreach (sourcefile ${SRC_LIST})
     redefine_file_base(${sourcefile})
 endforeach ()
 
+
 add_library(${PROJECT_NAME} SHARED ${SRC_LIST})
+set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_BUILD}.${REVISION} SOVERSION 1)
 
 #target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog) #spdlog
 target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${TensorRT_INCLUDE_DIRS})
